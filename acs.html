@@ -1,0 +1,142 @@
+
+<script type="text/x-red" data-template-name="device-credentials">
+    <div class="form-row">
+        <label for="node-config-input-name"> Name</label>
+        <input type="text" id="node-config-input-name">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-username"><i class="icon-tag"></i> User</label>
+        <input type="text" id="node-config-input-username">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-password"><i class="icon-tag"></i> Password</label>
+        <input type="password" id="node-config-input-password">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-protocol"><i class="icon-tag"></i> Protocol</label>
+        <select id="node-config-input-protocol">
+            <option value="http">HTTP</option>
+            <option value="https">HTTPS</option>
+		</select>
+	</div>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('device-credentials',{
+        category: 'config',
+        defaults: {
+            name: {value:""},
+			protocol: {value:"http"}
+        },
+		credentials: {
+			username: {type:"text"},
+			password: {type:"password"}
+			
+        },
+        label: function() {
+            return this.name || "Axis ACS Credential";
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="Axis_ACS">
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-account"><i class="icon-tag"></i> Account</label>
+        <input type="text" id="node-input-account">
+    </div>
+    <div class="form-row">
+        <label for="node-input-address"><i class="icon-tag"></i> Address</label>
+        <input type="text" id="node-input-address" placeholder="IP or FQDN">
+    </div>
+    <div class="form-row">
+        <label for="node-input-action"><i class="icon-tag"></i> Action</label>
+        <select id="node-input-action">
+            <option value="msg.action">msg.action</option>
+            <option value="TBD">TBD</option>
+		</select>
+	</div>
+    <div class="form-row">
+        <label for="node-input-data"><i class="icon-tag"></i> Data</label>
+        <input type="text" id="node-input-data"  placeholder="Depends on action">
+    </div>
+    <div class="form-row">
+        <label for="node-input-output"><i class="icon-tag"></i> Output</label>
+        <select id="node-input-output">
+            <option value="string">UTF-8 String</option>
+            <option value="json">Parse JSON</option>
+            <option value="binary">Binary buffer</option>
+            <option value="base64">Base64 String</option>
+		</select>
+    </div>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('Axis_ACS',{
+        category: 'Axis',
+        color: '#FFFF00',
+        defaults: {
+            name: {value:""},
+			account: {value:"", type:"device-credentials"},
+			address: {value:""},
+			action: { value:"msg_action", required: true },
+			data: {value:""},
+			output: {value:"json"}
+        },
+        inputs:1,
+        outputs:1,
+        icon: "file.png",
+        label: function() {
+            return this.name|| this.action;
+        }
+    });
+</script>
+
+<script type="text/x-red" data-help-name="Axis_ACS">
+    <p>Node for common Axis ACS operations</p>
+	<h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>payload<span class="property-type">object | string | number</span></dt>
+        <dd> Depends on the action.</dd>
+        <dt>error<span class="property-type">boolean | number | string</span></dt>
+        <dd> The operation was successful if <code>error</code> is null or false. If the operation failed,
+			msg.payload will include hints on the reason.  If <code>error</code> is a number it will be the 
+			the HTTP resonse code from the Axis ACS</dd>
+    </dl>	
+
+	<h3>Inputs</h3>	
+    <dl class="message-properties">
+        <dt>address<span class="property-type">string</span></dt>
+        <dd> IP address for FQDN to camera</dd>
+		
+        <dt>credentials<span class="property-type">object</span></dt>
+        <dd> The device credentials and protocol</dd>
+		
+        <dt>action<span class="property-type">string | Selection</span></dt>
+        <dd> Action type</dd>
+		
+        <dt class="optional">data <span class="property-type">string</span></dt>
+        <dd> Depends on request/action type</dd>
+		
+        <dt>output<span class="property-type">string</span></dt>
+        <dd> Output data type for Actions <code>Image</code> and <code>HTTP Request</code>.  Other actions will reply a JavaScript object</dd>
+    </dl>	
+	
+	<h3>Request: msg.action</h3>
+    <dl class="message-properties">
+        <dt>action<span class="property-type">string</span></dt>
+        <dd> Action type.</dd>
+        <dt>data<span class="property-type">string</span></dt>
+        <dd> Depends on action type</dd>
+    </dl>	
+
+	<h3>Request: TBD</h3>
+    <dl class="message-properties">
+        <dt>Data<span class="property-type">string</span></dt>
+        <dd> TBD</dd>
+		<p>TBD</p>
+    </dl>	
+</script>

@@ -1,0 +1,21 @@
+{
+  "author": {
+    "name": "Pandos Me"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+  },
+  "deprecated": false,
+  "description": "Axis ACS Node",
+  "license": "ISC",
+  "name": "node-red-acs",
+  "node-red": {
+    "nodes": {
+      "acs": "acs.js"
+    }
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "0.1.0"
+}
