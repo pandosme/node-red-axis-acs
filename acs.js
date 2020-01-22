@@ -78,6 +78,44 @@ module.exports = function(RED) {
 					}).auth( user, password, true);
 				break;
 				
+				case "Server Info":
+					var options = {
+						url: 'https://' + address + ':' + port + '/Acs/Api/SystemFacade/GetSystem',
+						strictSSL: false
+					}
+					//console.log("URL: " + options.url );
+					request.get(options, function (error, response, body) {
+						if( error ) {
+							//console.log("Error response");
+							msg.error = true;
+							msg.payload = body.toString();
+							node.send(msg);
+							return;
+						}
+						if( response.statusCode !== 200 ) {
+							//console.log("Error: " + response.statusCode );
+							//console.log(body);
+							msg.error = true;
+							msg.payload = body;
+							node.send(msg);
+							return;
+						}
+						var data = JSON.parse(body);
+						if( !data ) {
+							msg.error = true;
+							msg.payload = "JSON parse error";
+						}
+						msg.payload = {
+							id: data.ID,
+							name: data.Name,
+							version: data.ServerDisplayVersion,
+							hardware: data.Hardware
+						}
+						msg.error = false;
+						node.send(msg);
+					}).auth( user, password, true);
+					break;
+			
 				default:
 					msg.error = true;
 					msg.statusCode = 0;
