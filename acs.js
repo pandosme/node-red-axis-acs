@@ -1,41 +1,58 @@
 const got = require("got");
 
-module.exports = function(RED) {
-	function Axis_Server(config) {
-		RED.nodes.createNode(this,config);
-		this.name = config.name;
-		this.address = config.address;
-		this.port = config.port;
-		this.user = config.user;
-		this.password = config.password;
-	}
-	
-	RED.nodes.registerType("acs-server", Axis_Server,{
-		defaults: {
-			name: {type: "text"},
-			address: {type: "text"},
-			port: {type: "text"},
-		},
-		credentials: {
-			user: {type: "text"},
-			password: {type:"password"}
-		}		
+
+function HTTP_Get( url, resonseType, callback ) {
+	var client = got.extend({
+		hooks:{
+			afterResponse: [
+				(res, retry) => {
+					const options = res.request.options;
+					const digestHeader = res.headers["www-authenticate"];
+					if (!digestHeader){
+//						console.error("Response contains no digest header");
+						return res;
+					}
+					const incomingDigest = digestAuth.ClientDigestAuth.analyze(	digestHeader );
+					const digest = digestAuth.ClientDigestAuth.generateProtectionAuth( incomingDigest, device.user, device.password,{
+						method: options.method,
+						uri: options.url.pathname,
+						counter: 1
+					});
+					options.headers.authorization = digest.raw;
+					return retry(options);
+				}
+			]
+		}
 	});
+
+	(async () => {
+		try {
+			const response = await client.get( url,{
+				responseType: resonseType,
+				https:{rejectUnauthorized: false}
+			});
+			callback(false, response.body );
+		} catch (error) {
+			callback(error, error );
+		}
+	})();
 }
 
 
 module.exports = function(RED) {
     function ACS_Action(config) {
         RED.nodes.createNode(this,config);
-		this.server = config.server,
-		this.name = config.name;
-		this.address = config.address;
-		this.user = config.user;
-		this.password = config.password;
+		this.action = config.action;
+		this.from = config.from;
+		this.to = config.to;
+		this.duration = config.duration;
+		this.server = config.server;
         var node = this;
         node.on('input', function(msg) {
-			var server = RED.nodes.getNode(this.server);
-			var address = "https://"+server.address+":"+server.port;
+			var server = RED.nodes.getNode(node.server);
+			var address = "https://" + server.address + ":" + server.port;
+			var user = server.credentials.user;
+			var password = server.credentials.password;
 			var action = msg.action || node.action;
 			var camera = msg.payload.camera || node.camera;
 			var from = msg.payload.from || node.from;
@@ -43,24 +60,30 @@ module.exports = function(RED) {
 			var duration = msg.payload.duration || node.duration;
 			switch( action ) {
 				case "Info":
-					var url = address + '/Acs/Api/SystemFacade/GetSystem',
+					console.log("Info");
+					var url = address + '/Acs/Api/SystemFacade/GetSystem';
+					console.log(url);
 					(async () => {
 						try {
 							const response = await got( url,{
+								username: user,
+								password: password,
 								responseType: "json",
 								https:{rejectUnauthorized: false}
 							});
+							
 							msg.error = false;
 							msg.payload = {
 								name: response.body.Name || "Undefined",
 								version: response.body.ServerDisplayVersion || "Undefined",
 								timezone: response.body.ServerDisplayVersion|| "Undefined",
-								hardware: response.body.ModelName|| "Undefined",
-								vendor: response.bodyVendor || "Undefined"
+								hardware: response.body.Hardware.ModelName|| "Undefined",
+								vendor: response.body.Hardware.Vendor || "Undefined"
 							}
+
 							node.send(msg);
-							callback(false, response.body );
 						} catch (error) {
+							console.log(error);
 							msg.error = error;
 							msg.payload = error;
 							node.send(msg);
@@ -69,17 +92,13 @@ module.exports = function(RED) {
 				break;
 				
 				case "Inventory":
-					var url = address + '/Acs/Api/ServerConfigurationFacade/GetServerConfiguration',
+					var url = address + '/Acs/Api/ServerConfigurationFacade/GetServerConfiguration';
 					(async () => {
 						try {
-							const response = await got( url,{
-								responseType: "json",
-								https:{rejectUnauthorized: false}
-							});
+							const response = await got( url,{username: user,password:password,responseType: "json",https:{rejectUnauthorized: false}});
 							msg.error = false;
-							msg.payload = response.body;
+							msg.payload = response.body.CameraSettings;
 							node.send(msg);
-							callback(false, response.body );
 						} catch (error) {
 							msg.error = error;
 							msg.payload = error;
@@ -91,10 +110,10 @@ module.exports = function(RED) {
         });
     }
 	
-    RED.nodes.registerType("acs-actions",ACS_Action,{
+    RED.nodes.registerType("ACS",ACS_Action,{
 		defaults: {
             name: {type:"text"},
-			server: {type:"acs-server"},
+			server: {type:"ACS Server"},
 			action: { type:"text" },
 			data: {type:"text"},
 			from: {type:"text"},

@@ -1,47 +1,4 @@
-
-<script type="text/x-red" data-template-name="acs-server">
-    <div class="form-row">
-        <label for="node-config-input-address"><i class="icon-tag"></i> Address</label>
-        <input type="text" id="node-config-input-address">
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-port"><i class="icon-tag"></i> Port</label>
-        <input type="text" id="node-config-input-port">
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-user"><i class="icon-tag"></i> User</label>
-        <input type="text" id="node-config-input-user">
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-password"><i class="icon-tag"></i> Password</label>
-        <input type="password" id="node-config-input-password">
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-name"> Name</label>
-        <input type="text" id="node-config-input-name">
-    </div>
-</script>
-
-<script type="text/javascript">
-    RED.nodes.registerType('acs-server',{
-        category: 'config',
-        defaults: {
-            name: {value:""},
-			address: {value:""},
-			port: {value:"55756"},
-        },
-		credentials: {
-			user: {type:"text"},
-			password: {type:"password"}
-			
-        },
-        label: function() {
-            return this.name || "ACS Server";
-        }
-    });
-</script>
-
-<script type="text/x-red" data-template-name="acs-actions">
+<script type="text/x-red" data-template-name="ACS">
     <div class="form-row">
         <label for="node-input-server"><i class="icon-tag"></i> Account</label>
         <input type="text" id="node-input-server">
@@ -80,20 +37,20 @@
 </script>
 
 <script type="text/javascript">
-    RED.nodes.registerType('acs-actions',{
+    RED.nodes.registerType('ACS',{
         category: 'Axis',
         color: '#FFCC33',
         defaults: {
             name: {value:""},
-			server: {value:"", type:"acs-server"},
-			action: { value:"msg_action", required: true },
+			server: {value:"", type:"ACS Server"},
+			action: { value:"Info", required: true },
 			from: {value:""},
 			to: {value:""},
 			duration: {value:""}
         },
         inputs:1,
         outputs:1,
-        icon: "font-awesome/fa-video-camera",
+        icon: "font-awesome/fa-table",
         label: function() {
             return this.name || this.action || "ACS Action";
         },
@@ -102,24 +59,37 @@
 				var action = $("#node-input-action").val();
 				$(".input_camera").hide();
 				$(".input_period").hide();
+				$(".input_duration").hide();				
 				switch (action) {
 					case "Info":
+						$(".input_camera").hide();
+						$(".input_period").hide();
+						$(".input_duration").hide();				
 					break;
 					case "Inventory":
+						$(".input_camera").hide();
+						$(".input_period").hide();
+						$(".input_duration").hide();				
 					break;
 					case "List recordings":
 						$(".input_camera").show();
 						$(".input_period").show();
+						$(".input_duration").hide();				
 					break;
 					case "Start recording":
 						$(".input_camera").show();
+						$(".input_period").hide();
+						$(".input_duration").show();				
 					break;
 					case "Stop recording":
 						$(".input_camera").show();
+						$(".input_period").hide();
+						$(".input_duration").hide();
 					break;
 					case "Get recording":
 						$(".input_camera").show();
 						$(".input_priod").show();
+						$(".input_duration").hide();
 					break;
 				}
 			});
@@ -127,7 +97,7 @@
     });
 </script>
 
-<script type="text/x-red" data-help-name="acs-actions">
+<script type="text/x-red" data-help-name="ACS">
 	<h3>Inputs</h3>	
     <dl class="message-properties">
 		<dt>Action<span class="property-type">string</span></dt>

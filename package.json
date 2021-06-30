@@ -6,7 +6,7 @@
     "name": "Fred Juhlin",
     "email": "fred.juhlin@gmail.com"
   },
-  "license": "MIT",  
+  "license": "MIT",
   "deprecated": false,
   "repository": {
     "type": "git",
@@ -18,11 +18,12 @@
   },
   "bundleDependencies": false,
   "dependencies": {
-    "got": "^11.8.0"
+    "got": "^11.8.2"
   },
   "node-red": {
     "nodes": {
-      "acs": "acs.js"
+      "ACS": "acs.js",
+	  "ACS Server": "acs-server.js"
     }
   },
   "scripts": {
