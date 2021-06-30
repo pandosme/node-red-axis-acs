@@ -9,17 +9,17 @@
             <option value="Info">Info</option>
             <option value="Inventory">Inventory</option>
             <option value="List recordings">List recordings</option>
+            <option value="Get recording">Get recording</option>
             <option value="Start recording">Start recording</option>
             <option value="Stop recording">Stop recording</option>
-            <option value="Get recording">Get recording</option>
 		</select>
 	</div>
     <div class="form-row input_camera">
-        <label for="node-input-camera"><i class="icon-tag"></i> Camera ID</label>
+        <label for="node-input-camera"><i class="icon-tag"></i> Camera Id</label>
         <input type="text" id="node-input-camera"  placeholder="">
     </div>
     <div class="form-row input_period">
-        <label for="node-input-from"><i class="icon-tag"></i> Frome time</label>
+        <label for="node-input-from"><i class="icon-tag"></i> From time</label>
         <input type="text" id="node-input-from"  placeholder="Timestamp">
     </div>
     <div class="form-row input_period">
@@ -43,6 +43,7 @@
         defaults: {
             name: {value:""},
 			server: {value:"", type:"ACS Server"},
+			camera: {value:""},
 			action: { value:"Info", required: true },
 			from: {value:""},
 			to: {value:""},
@@ -88,7 +89,7 @@
 					break;
 					case "Get recording":
 						$(".input_camera").show();
-						$(".input_priod").show();
+						$(".input_period").show();
 						$(".input_duration").hide();
 					break;
 				}
@@ -109,42 +110,18 @@
 	</dl>	
 	<dl class="message-properties">
 		<dt>Inventory<span class="property-type"></span></dt>
-		<dd>Lists all enabled cameras<dd/>
-	</dl>	
-	<dl class="message-properties">
-		<dt>Start recording<span class="property-type"></span></dt>
-		<dd>To be able to control recordings, ACS needs to be configured with an action rule for every camera.
-		In ACS, go to <code>Configuration | Recording & events | Action rules<code/>.
-		Create a new rule and use <code>External HTTPS<code/> as the trigger. It is recommended to use the cameras serial number 
-		(upper case) as the Trigger name<br/>. If duration is not set you need to send a <code>Stop recording<code/><dd/>
-		<dd>Options (msg.payload):
-			<code>{<br/>
-			&nbsp;&nbsp;"camera": "serialnumber",<br/>
-			&nbsp;&nbsp;"duration": optional number of seconds,<br/>
-			}</code><br/>
-		</dd>
-	</dl>	
-	<dl class="message-properties">
-		<dt>Stop recording<span class="property-type"></span></dt>
-		<dd>See <code>Start recording<code/><dd/>
-		<dd>Options (msg.payload):
-			<code>{<br/>
-			&nbsp;&nbsp;"camera": "serialnumber"<br/>
-			}</code><br/>
-		</dd>
+		<dd>Lists all enabled cameras</dd>
 	</dl>	
 	<dl class="message-properties">
 		<dt>List recordings<span class="property-type"></span></dt>
 		<dd>Lists all or a selected cameras recordings between two time periods.<br/>
 		If camera is not defined all recordings from all cameras will be listed.
-		If <code>from</code> and <code>to</code> are not set will result in recordings today since midnight.  Timestamps can be EPOCH number or ISO timestring</dd>
-		<dd>Options (msg.payload):
-			<code>{<br/>
-			&nbsp;&nbsp;"camera": "serialnumber",<br/>
-			&nbsp;&nbsp;"from": timestamp,<br/>
-			&nbsp;&nbsp;"to": timestamp<br/>
-			}</code><br/>
-		</dd>
+		Input: Camera ID (alt <code>msg.camera</code>)</dd>
+		
+		<dd>If <code>from</code> and <code>to</code> are not set will result in recordings today since midnight.<br/>
+		From and To is Epoch ms resolution number or ISO timestring</dd>
+		<dd>Input: From (alt <code>msg.from</code>)</dd>
+		<dd>Input: To (alt <code>msg.to</code>)</dd>
 	</dl>	
 	<dl class="message-properties">
 		<dt>Get recording<span class="property-type"></span></dt>
@@ -153,13 +130,24 @@
 		Note that ACS can be very picky with the timestamp.  
 		Especially if there are two overlapping recordings 
 		(one continous recording and one triggered recording).</dd>
-		<dd>Options (msg.payload):
-			<code>{<br/>
-			&nbsp;&nbsp;"camera": "serialnumber",<br/>
-			&nbsp;&nbsp;"from": timestamp,<br/>
-			&nbsp;&nbsp;"to": timestamp<br/>
-			}</code><br/>
-		</dd>
+		<dd>Input: Camera ID (alt <code>msg.camera</code>)</dd>
+		<dd>Input: From (alt <code>msg.from</code>)</dd>
+		<dd>Input: To (alt <code>msg.to</code>)</dd>
+	</dl>	
+	<dl class="message-properties">
+		<dt>Start recording<span class="property-type"></span></dt>
+		<dd>To be able to control recordings, ACS needs to be configured with an action rule for every camera.
+		In ACS, go to <code>Configuration | Recording & events | Action rules</code>.
+		Create a new rule and use <code>External HTTPS</code> as the trigger. It is recommended to use the cameras serial number 
+		(upper case) as the Trigger name<br/>.
+		Input: Camera ID must correspond to the ACS configuration External HTTPS (alt <code>msg.camera</code>)</dd>
+		<dd>If duration is not set you need to send a <code>Stop recording</code><br/>
+		Optional input: Duration seconds  (alt <code>msg.duration</code>)</dd>
+	</dl>	
+	<dl class="message-properties">
+		<dt>Stop recording<span class="property-type"></span></dt>
+		<dd>See <code>Start recording</code></dd>
+		<dd>Input: Camera ID (alt <code>msg.camera</code>)</dd>
 	</dl>	
 	<h3>Outputs</h3>	
     <dl class="message-properties">
@@ -167,7 +155,7 @@
 		<dd>Value is false if operation was successfull. Otherwise a string will indicate wat was wrong</dd>
 	</dl>
     <dl class="message-properties">
-		<dt>msg.payload<span class="property-type">object | array | buffer</span></dt>
-		<dd>Depending on action</dd>
+		<dt>msg.payload<span class="property-type">null || object | array | buffer</span></dt>
+		<dd>Depending on action.  If msg.payload is null check msg.error</dd>
 	</dl>
 </script>

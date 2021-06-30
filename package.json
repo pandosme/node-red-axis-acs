@@ -1,7 +1,7 @@
 {
   "name": "node-red-contrib-axis-acs",
-  "version": "0.9.0",
-  "description": "Simplify integration to ACS",
+  "version": "1.0.0",
+  "description": "Simplified integration with ACS",
   "author": {
     "name": "Fred Juhlin",
     "email": "fred.juhlin@gmail.com"
