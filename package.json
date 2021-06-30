@@ -23,7 +23,7 @@
   "node-red": {
     "nodes": {
       "ACS": "acs.js",
-	  "ACS Server": "acs-server.js"
+      "ACS Server": "acs-server.js"
     }
   },
   "scripts": {
