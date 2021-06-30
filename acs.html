@@ -1,9 +1,5 @@
 
-<script type="text/x-red" data-template-name="ACS Server">
-    <div class="form-row">
-        <label for="node-config-input-name"> Name</label>
-        <input type="text" id="node-config-input-name">
-    </div>
+<script type="text/x-red" data-template-name="acs-server">
     <div class="form-row">
         <label for="node-config-input-address"><i class="icon-tag"></i> Address</label>
         <input type="text" id="node-config-input-address">
@@ -13,17 +9,21 @@
         <input type="text" id="node-config-input-port">
     </div>
     <div class="form-row">
-        <label for="node-config-input-username"><i class="icon-tag"></i> User</label>
-        <input type="text" id="node-config-input-username">
+        <label for="node-config-input-user"><i class="icon-tag"></i> User</label>
+        <input type="text" id="node-config-input-user">
     </div>
     <div class="form-row">
         <label for="node-config-input-password"><i class="icon-tag"></i> Password</label>
         <input type="password" id="node-config-input-password">
     </div>
+    <div class="form-row">
+        <label for="node-config-input-name"> Name</label>
+        <input type="text" id="node-config-input-name">
+    </div>
 </script>
 
 <script type="text/javascript">
-    RED.nodes.registerType('ACS Server',{
+    RED.nodes.registerType('acs-server',{
         category: 'config',
         defaults: {
             name: {value:""},
@@ -31,21 +31,17 @@
 			port: {value:"55756"},
         },
 		credentials: {
-			username: {type:"text"},
+			user: {type:"text"},
 			password: {type:"password"}
 			
         },
         label: function() {
-            return this.name || "Axis ACS Credential";
+            return this.name || "ACS Server";
         }
     });
 </script>
 
-<script type="text/x-red" data-template-name="Axis ACS">
-    <div class="form-row">
-        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="Name">
-    </div>
+<script type="text/x-red" data-template-name="acs-actions">
     <div class="form-row">
         <label for="node-input-server"><i class="icon-tag"></i> Account</label>
         <input type="text" id="node-input-server">
@@ -53,87 +49,155 @@
     <div class="form-row">
         <label for="node-input-action"><i class="icon-tag"></i> Action</label>
         <select id="node-input-action">
-            <option value="Server Info">Server Info</option>
+            <option value="Info">Info</option>
             <option value="Inventory">Inventory</option>
+            <option value="List recordings">List recordings</option>
+            <option value="Start recording">Start recording</option>
+            <option value="Stop recording">Stop recording</option>
+            <option value="Get recording">Get recording</option>
 		</select>
 	</div>
-    <div class="form-row">
-        <label for="node-input-data"><i class="icon-tag"></i> Data</label>
-        <input type="text" id="node-input-data"  placeholder="Depends on action">
+    <div class="form-row input_camera">
+        <label for="node-input-camera"><i class="icon-tag"></i> Camera ID</label>
+        <input type="text" id="node-input-camera"  placeholder="">
+    </div>
+    <div class="form-row input_period">
+        <label for="node-input-from"><i class="icon-tag"></i> Frome time</label>
+        <input type="text" id="node-input-from"  placeholder="Timestamp">
+    </div>
+    <div class="form-row input_period">
+        <label for="node-input-to"><i class="icon-tag"></i> To time</label>
+        <input type="text" id="node-input-to"  placeholder="Timestamp">
+    </div>
+    <div class="form-row input_duration">
+        <label for="node-input-duration"><i class="icon-tag"></i> Duration</label>
+        <input type="text" id="node-input-duration"  placeholder="Seconds [Optional]">
     </div>
     <div class="form-row">
-        <label for="node-input-output"><i class="icon-tag"></i> Output</label>
-        <select id="node-input-output">
-            <option value="string">UTF-8 String</option>
-            <option value="json">Parse JSON</option>
-            <option value="binary">Binary buffer</option>
-            <option value="base64">Base64 String</option>
-		</select>
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
     </div>
 </script>
 
 <script type="text/javascript">
-    RED.nodes.registerType('Axis ACS',{
+    RED.nodes.registerType('acs-actions',{
         category: 'Axis',
-        color: '#FFFF00',
+        color: '#FFCC33',
         defaults: {
             name: {value:""},
-			server: {value:"", type:"ACS Server"},
+			server: {value:"", type:"acs-server"},
 			action: { value:"msg_action", required: true },
-			data: {value:""},
-			output: {value:"json"}
+			from: {value:""},
+			to: {value:""},
+			duration: {value:""}
         },
         inputs:1,
         outputs:1,
-        icon: "file.png",
+        icon: "font-awesome/fa-video-camera",
         label: function() {
-            return this.name|| this.action;
-        }
+            return this.name || this.action || "ACS Action";
+        },
+		oneditprepare: function() {
+			$("#node-input-action").change(function() {
+				var action = $("#node-input-action").val();
+				$(".input_camera").hide();
+				$(".input_period").hide();
+				switch (action) {
+					case "Info":
+					break;
+					case "Inventory":
+					break;
+					case "List recordings":
+						$(".input_camera").show();
+						$(".input_period").show();
+					break;
+					case "Start recording":
+						$(".input_camera").show();
+					break;
+					case "Stop recording":
+						$(".input_camera").show();
+					break;
+					case "Get recording":
+						$(".input_camera").show();
+						$(".input_priod").show();
+					break;
+				}
+			});
+		}
     });
 </script>
 
-<script type="text/x-red" data-help-name="Axis ACS">
-    <p>Node for common Axis ACS operations</p>
-	<h3>Outputs</h3>
-    <dl class="message-properties">
-        <dt>payload<span class="property-type">object | string | number</span></dt>
-        <dd> Depends on the action.</dd>
-        <dt>error<span class="property-type">boolean | number | string</span></dt>
-        <dd> The operation was successful if <code>error</code> is null or false. If the operation failed,
-			msg.payload will include hints on the reason.  If <code>error</code> is a number it will be the 
-			the HTTP resonse code from the Axis ACS</dd>
-    </dl>	
-
+<script type="text/x-red" data-help-name="acs-actions">
 	<h3>Inputs</h3>	
     <dl class="message-properties">
-        <dt>address<span class="property-type">string</span></dt>
-        <dd> IP address for FQDN to camera</dd>
-		
-        <dt>credentials<span class="property-type">object</span></dt>
-        <dd> The device credentials and protocol</dd>
-		
-        <dt>action<span class="property-type">string | Selection</span></dt>
-        <dd> Action type</dd>
-		
-        <dt class="optional">data <span class="property-type">string</span></dt>
-        <dd> Depends on request/action type</dd>
-		
-        <dt>output<span class="property-type">string</span></dt>
-        <dd> Output data type for Actions <code>Image</code> and <code>HTTP Request</code>.  Other actions will reply a JavaScript object</dd>
-    </dl>	
-	
-	<h3>Request: msg.action</h3>
+		<dt>Action<span class="property-type">string</span></dt>
+		<dd>Use <code>msg.action</code> to override config</dd>
+	</dl>
+	<dl class="message-properties">
+		<dt>Info<span class="property-type"></span></dt>
+		<dd>ACS Server information</dd>
+	</dl>	
+	<dl class="message-properties">
+		<dt>Inventory<span class="property-type"></span></dt>
+		<dd>Lists all enabled cameras<dd/>
+	</dl>	
+	<dl class="message-properties">
+		<dt>Start recording<span class="property-type"></span></dt>
+		<dd>To be able to control recordings, ACS needs to be configured with an action rule for every camera.
+		In ACS, go to <code>Configuration | Recording & events | Action rules<code/>.
+		Create a new rule and use <code>External HTTPS<code/> as the trigger. It is recommended to use the cameras serial number 
+		(upper case) as the Trigger name<br/>. If duration is not set you need to send a <code>Stop recording<code/><dd/>
+		<dd>Options (msg.payload):
+			<code>{<br/>
+			&nbsp;&nbsp;"camera": "serialnumber",<br/>
+			&nbsp;&nbsp;"duration": optional number of seconds,<br/>
+			}</code><br/>
+		</dd>
+	</dl>	
+	<dl class="message-properties">
+		<dt>Stop recording<span class="property-type"></span></dt>
+		<dd>See <code>Start recording<code/><dd/>
+		<dd>Options (msg.payload):
+			<code>{<br/>
+			&nbsp;&nbsp;"camera": "serialnumber"<br/>
+			}</code><br/>
+		</dd>
+	</dl>	
+	<dl class="message-properties">
+		<dt>List recordings<span class="property-type"></span></dt>
+		<dd>Lists all or a selected cameras recordings between two time periods.<br/>
+		If camera is not defined all recordings from all cameras will be listed.
+		If <code>from</code> and <code>to</code> are not set will result in recordings today since midnight.  Timestamps can be EPOCH number or ISO timestring</dd>
+		<dd>Options (msg.payload):
+			<code>{<br/>
+			&nbsp;&nbsp;"camera": "serialnumber",<br/>
+			&nbsp;&nbsp;"from": timestamp,<br/>
+			&nbsp;&nbsp;"to": timestamp<br/>
+			}</code><br/>
+		</dd>
+	</dl>	
+	<dl class="message-properties">
+		<dt>Get recording<span class="property-type"></span></dt>
+		<dd>Gets a recording in MP4 container that can be saved to file or 
+		played directly in a player or browser<br/>
+		Note that ACS can be very picky with the timestamp.  
+		Especially if there are two overlapping recordings 
+		(one continous recording and one triggered recording).</dd>
+		<dd>Options (msg.payload):
+			<code>{<br/>
+			&nbsp;&nbsp;"camera": "serialnumber",<br/>
+			&nbsp;&nbsp;"from": timestamp,<br/>
+			&nbsp;&nbsp;"to": timestamp<br/>
+			}</code><br/>
+		</dd>
+	</dl>	
+	<h3>Outputs</h3>	
     <dl class="message-properties">
-        <dt>action<span class="property-type">string</span></dt>
-        <dd> Action type.</dd>
-        <dt>data<span class="property-type">string</span></dt>
-        <dd> Depends on action type</dd>
-    </dl>	
-
-	<h3>Request: TBD</h3>
+		<dt>msg.error<span class="property-type">false | string</span></dt>
+		<dd>Value is false if operation was successfull. Otherwise a string will indicate wat was wrong</dd>
+	</dl>
     <dl class="message-properties">
-        <dt>Data<span class="property-type">string</span></dt>
-        <dd> TBD</dd>
-		<p>TBD</p>
-    </dl>	
+		<dt>msg.payload<span class="property-type">object | array | buffer</span></dt>
+		<dd>Depending on action</dd>
+	</dl>
 </script>

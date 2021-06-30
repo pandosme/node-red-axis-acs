@@ -1,15 +1,25 @@
 {
   "name": "node-red-contrib-axis-acs",
+  "version": "0.9.0"
+  "description": "Simplify integration to ACS",
   "author": {
-    "name": "Pandos Me"
+    "name": "Fred Juhlin",
+    "email": "fred.juhlin@gmail.com"
+  },
+  "license": "MIT",  
+  "deprecated": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pandosme/node-red-axis-acs.git"
+  },
+  "homepage": "https://github.com/pandosme/node-red-axis-acs",
+  "bugs": {
+    "url": "https://github.com/pandosme/node-red-axis-acs/issues"
   },
   "bundleDependencies": false,
   "dependencies": {
+    "got": "^11.8.0"
   },
-  "deprecated": false,
-  "description": "Axis ACS Node",
-  "license": "ISC",
-  "name": "node-red-acs",
   "node-red": {
     "nodes": {
       "acs": "acs.js"
@@ -18,5 +28,4 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "0.1.0"
 }

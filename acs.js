@@ -1,157 +1,105 @@
-var request = require('request');
+const got = require("got");
 
 module.exports = function(RED) {
-    function Axis_ACS(config) {
+	function Axis_Server(config) {
+		RED.nodes.createNode(this,config);
+		this.name = config.name;
+		this.address = config.address;
+		this.port = config.port;
+		this.user = config.user;
+		this.password = config.password;
+	}
+	
+	RED.nodes.registerType("acs-server", Axis_Server,{
+		defaults: {
+			name: {type: "text"},
+			address: {type: "text"},
+			port: {type: "text"},
+		},
+		credentials: {
+			user: {type: "text"},
+			password: {type:"password"}
+		}		
+	});
+}
+
+
+module.exports = function(RED) {
+    function ACS_Action(config) {
         RED.nodes.createNode(this,config);
-		this.server = config.server;
-		this.action = config.action;
-		this.data = config.data;
-		this.output = config.output;
+		this.server = config.server,
+		this.name = config.name;
+		this.address = config.address;
+		this.user = config.user;
+		this.password = config.password;
         var node = this;
         node.on('input', function(msg) {
-			var action = msg.action || node.action;
-			//console.log("Action: " + action );
 			var server = RED.nodes.getNode(this.server);
-			var address = server.address;
-			//console.log("Address: " + address );
-			var port = server.port;
-			//console.log("Port: " + port );
-			var user = server.credentials.username;
-			//console.log("User: " + user );
-			var password = server.credentials.password;
-			//console.log("Password: " + password );
-			var data = msg.data || node.data;
-			//console.log("Data: " + data );
-			if( address.length < 6 ) {
-				msg.error = "Invalid address";
-				msg.payload = {};
-				node.send(msg);
-				return;
-			}
-			//console.log(action + ":" + address + "/" + data);
+			var address = "https://"+server.address+":"+server.port;
+			var action = msg.action || node.action;
+			var camera = msg.payload.camera || node.camera;
+			var from = msg.payload.from || node.from;
+			var to = msg.payload.to || node.to;
+			var duration = msg.payload.duration || node.duration;
 			switch( action ) {
-				case "Inventory":
-					var options = {
-						url: 'https://' + address + ':' + port + '/Acs/Api/ServerConfigurationFacade/GetServerConfiguration',
-						strictSSL: false
-					}
-					//console.log("URL: " + options.url );
-					request.get(options, function (error, response, body) {
-						if( error ) {
-							//console.log("Error response");
-							msg.error = true;
-							msg.payload = body.toString();
-							node.send(msg);
-							return;
-						}
-						if( response.statusCode !== 200 ) {
-							//console.log("Error: " + response.statusCode );
-							//console.log(body);
-							msg.error = true;
-							msg.payload = body;
-							node.send(msg);
-							return;
-						}
-						var data = JSON.parse(body);
-						if( !data ) {
-							msg.error = true;
-							msg.payload = "JSON parse error";
-						}
-						//console.log(data);
-						var list = [];
-						for( var i = 0; i < data.CameraSettings.length; i++) {
-							//console.log(data.CameraSettings[i].CameraName);
-							list.push({
-								id: data.CameraSettings[i].CameraId.Id,
-								name: data.CameraSettings[i].CameraName,
-								vendor: data.CameraSettings[i].Manufacturer,
-								model: data.CameraSettings[i].Model,
-								firmware: data.CameraSettings[i].FirmwareVersion,
-								address: data.CameraSettings[i].Address,
-								serial: data.CameraSettings[i].MacAddress,
-								disconnects: data.CameraSettings[i].DisconnectSinceServerStart
+				case "Info":
+					var url = address + '/Acs/Api/SystemFacade/GetSystem',
+					(async () => {
+						try {
+							const response = await got( url,{
+								responseType: "json",
+								https:{rejectUnauthorized: false}
 							});
-						};
-						msg.error = false;
-						msg.payload = list;
-						node.send(msg);
-					}).auth( user, password, true);
+							msg.error = false;
+							msg.payload = {
+								name: response.body.Name || "Undefined",
+								version: response.body.ServerDisplayVersion || "Undefined",
+								timezone: response.body.ServerDisplayVersion|| "Undefined",
+								hardware: response.body.ModelName|| "Undefined",
+								vendor: response.bodyVendor || "Undefined"
+							}
+							node.send(msg);
+							callback(false, response.body );
+						} catch (error) {
+							msg.error = error;
+							msg.payload = error;
+							node.send(msg);
+						}
+					})();
 				break;
 				
-				case "Server Info":
-					var options = {
-						url: 'https://' + address + ':' + port + '/Acs/Api/SystemFacade/GetSystem',
-						strictSSL: false
-					}
-					//console.log("URL: " + options.url );
-					request.get(options, function (error, response, body) {
-						if( error ) {
-							//console.log("Error response");
-							msg.error = true;
-							msg.payload = body.toString();
+				case "Inventory":
+					var url = address + '/Acs/Api/ServerConfigurationFacade/GetServerConfiguration',
+					(async () => {
+						try {
+							const response = await got( url,{
+								responseType: "json",
+								https:{rejectUnauthorized: false}
+							});
+							msg.error = false;
+							msg.payload = response.body;
 							node.send(msg);
-							return;
-						}
-						if( response.statusCode !== 200 ) {
-							//console.log("Error: " + response.statusCode );
-							//console.log(body);
-							msg.error = true;
-							msg.payload = body;
+							callback(false, response.body );
+						} catch (error) {
+							msg.error = error;
+							msg.payload = error;
 							node.send(msg);
-							return;
 						}
-						var data = JSON.parse(body);
-						if( !data ) {
-							msg.error = true;
-							msg.payload = "JSON parse error";
-						}
-						msg.payload = {
-							id: data.ID,
-							name: data.Name,
-							version: data.ServerDisplayVersion,
-							hardware: data.Hardware
-						}
-						msg.error = false;
-						node.send(msg);
-					}).auth( user, password, true);
-					break;
-			
-				default:
-					msg.error = true;
-					msg.statusCode = 0;
-					msg.payload = action + " is not a valid action";
-					node.send(msg);
+					})();
 				break;
 			}
         });
     }
 	
-    RED.nodes.registerType("Axis ACS",Axis_ACS,{
+    RED.nodes.registerType("acs-actions",ACS_Action,{
 		defaults: {
             name: {type:"text"},
-			server: {type:"ACS Server"},
+			server: {type:"acs-server"},
 			action: { type:"text" },
 			data: {type:"text"},
-			output: { type: "default"}
-		}		
-	});
-	
-	function Axis_ACS_Credentials(config) {
-			RED.nodes.createNode(this,config);
-			this.name = config.name;
-			this.address = config.address;
-			this.port = config.port;
-	}
-	
-	RED.nodes.registerType("ACS Server",Axis_ACS_Credentials,{
-		defaults: {
-            name: {type:""},
-			address: {type: ""},
-			port: {type: ""}
-		},
-		credentials: {
-			username: {type:"text"},
-			password: {type:"password"}
+			from: {type:"text"},
+			to: {type:"text"},
+			duration: {type:"text"}
 		}		
 	});
 }
