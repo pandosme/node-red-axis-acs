@@ -15,20 +15,16 @@
 		</select>
 	</div>
     <div class="form-row input_camera">
-        <label for="node-input-camera"><i class="icon-tag"></i> Camera Id</label>
+        <label for="node-input-camera"><i class="icon-tag"></i> Camera</label>
         <input type="text" id="node-input-camera"  placeholder="">
     </div>
-    <div class="form-row input_period">
-        <label for="node-input-from"><i class="icon-tag"></i> From time</label>
-        <input type="text" id="node-input-from"  placeholder="Timestamp">
-    </div>
-    <div class="form-row input_period">
-        <label for="node-input-to"><i class="icon-tag"></i> To time</label>
-        <input type="text" id="node-input-to"  placeholder="Timestamp">
+    <div class="form-row input_time">
+        <label for="node-input-time"><i class="icon-tag"></i> Time</label>
+        <input type="text" id="node-input-time"  placeholder="Timestamp">
     </div>
     <div class="form-row input_duration">
         <label for="node-input-duration"><i class="icon-tag"></i> Duration</label>
-        <input type="text" id="node-input-duration"  placeholder="Seconds [Optional]">
+        <input type="text" id="node-input-duration"  placeholder="">
     </div>
     <div class="form-row">
         <label for="node-input-name"><i class="icon-tag"></i> Name</label>
@@ -44,9 +40,8 @@
             name: {value:""},
 			server: {value:"", type:"ACS Server"},
 			camera: {value:""},
-			action: { value:"Info", required: true },
-			from: {value:""},
-			to: {value:""},
+			action: { value:"" },
+			time: {value:""},
 			duration: {value:""}
         },
         inputs:1,
@@ -59,38 +54,38 @@
 			$("#node-input-action").change(function() {
 				var action = $("#node-input-action").val();
 				$(".input_camera").hide();
-				$(".input_period").hide();
+				$(".input_time").hide();
 				$(".input_duration").hide();				
 				switch (action) {
 					case "Info":
 						$(".input_camera").hide();
-						$(".input_period").hide();
+						$(".input_time").hide();
 						$(".input_duration").hide();				
 					break;
 					case "Inventory":
 						$(".input_camera").hide();
-						$(".input_period").hide();
+						$(".input_time").hide();
 						$(".input_duration").hide();				
 					break;
 					case "List recordings":
 						$(".input_camera").show();
-						$(".input_period").show();
-						$(".input_duration").hide();				
+						$(".input_time").show();
+						$(".input_duration").show();				
 					break;
 					case "Start recording":
 						$(".input_camera").show();
-						$(".input_period").hide();
+						$(".input_time").hide();
 						$(".input_duration").show();				
 					break;
 					case "Stop recording":
 						$(".input_camera").show();
-						$(".input_period").hide();
+						$(".input_time").hide();
 						$(".input_duration").hide();
 					break;
 					case "Get recording":
 						$(".input_camera").show();
-						$(".input_period").show();
-						$(".input_duration").hide();
+						$(".input_time").show();
+						$(".input_duration").show();
 					break;
 				}
 			});
@@ -114,25 +109,17 @@
 	</dl>	
 	<dl class="message-properties">
 		<dt>List recordings<span class="property-type"></span></dt>
-		<dd>Lists all or a selected cameras recordings between two time periods.<br/>
-		If camera is not defined all recordings from all cameras will be listed.
-		Input: Camera ID (alt <code>msg.camera</code>)</dd>
-		
-		<dd>If <code>from</code> and <code>to</code> are not set will result in recordings today since midnight.<br/>
-		From and To is Epoch ms resolution number or ISO timestring</dd>
-		<dd>Input: From (alt <code>msg.from</code>)</dd>
-		<dd>Input: To (alt <code>msg.to</code>)</dd>
+		<dd>Camera (<code>msg.camera</code>): "CAMER--NUMBER_FROM-INVENTORY-ID"</dd>
+		<dd>Time (<code>msg.time</code>): "2020-01-02T10:11:12" | EPOCH Number</dd>
+		<dd>Duration (<code>msg.duration</code>): Number of days after Time</dd>
 	</dl>	
 	<dl class="message-properties">
 		<dt>Get recording<span class="property-type"></span></dt>
 		<dd>Gets a recording in MP4 container that can be saved to file or 
 		played directly in a player or browser<br/>
-		Note that ACS can be very picky with the timestamp.  
-		Especially if there are two overlapping recordings 
-		(one continous recording and one triggered recording).</dd>
-		<dd>Input: Camera ID (alt <code>msg.camera</code>)</dd>
-		<dd>Input: From (alt <code>msg.from</code>)</dd>
-		<dd>Input: To (alt <code>msg.to</code>)</dd>
+		<dd>Camera (<code>msg.camera</code>): "CAMER-NUMBER_FROM-INVENTORY-ID"</dd>
+		<dd>Time (<code>msg.time</code>): "2020-01-02T10:11:12" | EPOCH number</dd>
+		<dd>Duration (<code>msg.duration</code>): Number of seconds after Time</dd>
 	</dl>	
 	<dl class="message-properties">
 		<dt>Start recording<span class="property-type"></span></dt>
