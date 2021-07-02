@@ -158,7 +158,11 @@ module.exports = function(RED) {
 								recording.time = ('0'+t1.getHours()).substr(-2,2) + ":" + ('0'+t1.getMinutes()).substr(-2,2) +":"+ ('0'+t1.getSeconds()).substr(-2,2);
 								list.push(recording);
 							});
-							msg.payload = list;
+							msg.payload = {
+								from: start.getTime(),
+								to: end.getTime(),
+								recordings: list
+							}
 							node.send(msg);
 							return;
 						} catch (error) {
