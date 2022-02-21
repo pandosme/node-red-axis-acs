@@ -12,9 +12,11 @@ module.exports = function(RED) {
         var node = this;
         node.on('input', function(msg) {
 			var server = RED.nodes.getNode(node.server);
-			var address = "https://" + server.address + ":" + server.port;
-			var user = server.credentials.user;
-			var password = server.credentials.password;
+			var port = msg.port || server.port;
+			var host = msg.address || server.address;
+			var address = "https://" + host + ":" + port;
+			var user = msg.user || server.credentials.user;
+			var password = msg.password || server.credentials.password;
 			var action = msg.action || node.action;
 			var camera = msg.camera || node.camera;
 			var time = msg.time || node.time;
