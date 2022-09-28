@@ -59,53 +59,120 @@
 </script>
 
 <script type="text/x-red" data-help-name="Camera Station">
-	<h3>Actions</h3>
-	<h2>Info</h2>
-	<p>Get basic server info</p>
+	<h2>Inputs & Outputs</h2>
+	Set the ACS server info.  Each action will only do output on success.  Use a Catch node to get all errors.
+	
+	<h2><b>Info</b></h2>
+	<p>Outputs basic server info.</p>
+	
+	<h2><b>Inventory</b></h2>
+	<p>Outputs ACS devices inventory</p>
+	
+	<h2><b>List recordings</b></h2>
+	<p>Outputs a list of recordings from a specific camera</p>
+	msg.payload
+	{<br/>
+	&nbsp;&nbsp;camera: "11112_b72b3225-daf0-410e-bc39-ae2f6ff39b8d",<br/>
+	&nbsp;&nbsp;from: "2022-07-10" <br/>
+	}<br/>
 	<dl class="message-properties">
-		<dt>Info<span class="property-type"></span></dt>
-		<dd>Basic server infirmation</dd>
+		<dt>camera<span class="property-type">string</span></dt>
+		<dd>Camera Id from inventory list</dd>
+		<dt>from<span class="property-type">number, Date, string</span></dt>
+		<dd>Start time as EPOCH, Date object or string "2022-07-03"</dd>
+		<dt>to<span class="property-type">number, Date, string</span></dt>
+		<dd>Optional.  If not set the list will include until now</dd>
 	</dl>	
+
+	<h2><b>Start recording</b></h2>
+	<p>Get ACS to start a manual recording on a specific camera</p>
 	<dl class="message-properties">
-		<dt>Inventory<span class="property-type"></span></dt>
-		<dd>Lists cameras</dd>
+		<dt>msg.payload<span class="property-type">string</span></dt>
+		<dd>Camera Id from inventory list</dd>
 	</dl>	
+
+	<h2><b>Stop recording</b></h2>
+	<p>Stop a manual recording</p>
 	<dl class="message-properties">
-		<dt>List recordings<span class="property-type"></span></dt>
-		<dd></dd>
-		<dd>Time (<code>msg.time</code>): "2020-01-02T10:11:12" | EPOCH Number</dd>
-		<dd>Duration (<code>msg.duration</code>): Number of days after Time</dd>
+		<dt>msg.payload<span class="property-type">string</span></dt>
+		<dd>Camera Id from inventory list</dd>
 	</dl>	
+
+	<h2><b>Bookmark</b></h2>
+	<p>Adds a bookmark on a recording for operators to find and keep track of incidents</p>
+	msg.payload
+	{<br/>
+	&nbsp;&nbsp;camera: "11112_b72b3225-daf0-410e-bc39-ae2f6ff39b8d",[<br/>
+	&nbsp;&nbsp;name: "Suspicious", <br/>
+	&nbsp;&nbsp;text: "Something to look closer on", <br/>
+	&nbsp;&nbsp;time: new Date() <br/>
+	}<br/>
 	<dl class="message-properties">
-		<dt>Export MP4<span class="property-type"></span></dt>
-		<dd>Gets a recording in MP4 container that can be saved to file or 
-		played directly in a player or browser<br/>
-		<dd>Camera (<code>msg.camera</code>): "CAMER-NUMBER_FROM-INVENTORY-ID"</dd>
-		<dd>Time (<code>msg.time</code>): "2020-01-02T10:11:12" | EPOCH number</dd>
-		<dd>Duration (<code>msg.duration</code>): Number of seconds after Time</dd>
+		<dt>camera<span class="property-type">string</span></dt>
+		<dd>Camera Id from inventory list</dd>
+		<dt>name<span class="property-type">string</span></dt>
+		<dd>A short descriptiv header</dd>
+		<dt>text<span class="property-type">string</span></dt>
+		<dd>Optional additional information</dd>
+		<dt>time<span class="property-type">number, Date, string</span></dt>
+		<dd>Timestamp. If omitted, current time will be used</dd>
 	</dl>	
+
+	<h2><b>Export MP4</b></h2>
+	<p>Exports a recording in MP4 format</p>
+	msg.payload
+	{<br/>
+	&nbsp;&nbsp;camera: "11112_b72b3225-daf0-410e-bc39-ae2f6ff39b8d",[<br/>
+	&nbsp;&nbsp;from: 1664348162000, <br/>
+	&nbsp;&nbsp;to:   1664348173000, <br/>
+	&nbsp;&nbsp;audio: false <br/>	
+	}<br/>
 	<dl class="message-properties">
-		<dt>Start recording<span class="property-type"></span></dt>
-		<dd>To be able to control recordings, ACS needs to be configured with an action rule for every camera.
-		In ACS, go to <code>Configuration | Recording & events | Action rules</code>.
-		Create a new rule and use <code>External HTTPS</code> as the trigger. It is recommended to use the cameras serial number 
-		(upper case) as the Trigger name<br/>.
-		Input: Camera ID must correspond to the ACS configuration External HTTPS (alt <code>msg.camera</code>)</dd>
-		<dd>If duration is not set you need to send a <code>Stop recording</code><br/>
-		Optional input: Duration seconds  (alt <code>msg.duration</code>)</dd>
+		<dt>camera<span class="property-type">string</span></dt>
+		<dd>Camera Id from inventory list</dd>
+		<dt>from<span class="property-type">number, object, string</span></dt>
+		<dd>Start time</dd>
+		<dt>to<span class="property-type">number, object, string</span></dt>
+		<dd>End time</dd>
+		<dt>audio<span class="property-type">number, object, string</span></dt>
+		<dd>Include/Exclude audio</dd>
 	</dl>	
+
+	<h2><b>Trigger</b></h2>
+	<p>Initiates a trigger configured in ACS.</p>
+	msg.payload
+	{<br/>
+	&nbsp;&nbsp;name: "My trigger",[<br/>
+	&nbsp;&nbsp;duration: 10, <br/>
+	&nbsp;&nbsp;state: true <br/>
+	}<br/>
 	<dl class="message-properties">
-		<dt>Stop recording<span class="property-type"></span></dt>
-		<dd>See <code>Start recording</code></dd>
-		<dd>Input: Camera ID (alt <code>msg.camera</code>)</dd>
+		<dt>name<span class="property-type">string</span></dt>
+		<dd>The name of the triggered defined in ACS</dd>
+		<dt>duration<span class="property-type">number</span></dt>
+		<dd>Optional number of seconds the state will be high.  If omitted, a new trigger with state false should be sent</dd>
+		<dt>state<span class="property-type">bool</span></dt>
+		<dd>Optional.  Only required for stopping a trigger </dd>
 	</dl>	
-	<h3>Outputs</h3>	
-    <dl class="message-properties">
-		<dt>msg.error<span class="property-type">false | string</span></dt>
-		<dd>Value is false if operation was successfull. Otherwise a string will indicate wat was wrong</dd>
-	</dl>
-    <dl class="message-properties">
-		<dt>msg.payload<span class="property-type">null || object | array | buffer</span></dt>
-		<dd>Depending on action.  If msg.payload is null check msg.error</dd>
-	</dl>
+
+	<h2><b>Add camera</b></h2>
+	<p>Adds a camera to inventory</p>
+	msg.payload
+	{<br/>
+	&nbsp;&nbsp;address: "1.2.3.4",<br/>
+	&nbsp;&nbsp;name: "Some camera", <br/>
+	&nbsp;&nbsp;user: "root", <br/>
+	&nbsp;&nbsp;password: "pass", <br/>
+	}<br/>
+	<dl class="message-properties">
+		<dt>address<span class="property-type">string</span></dt>
+		<dd>IP address (or FQDN) to the camera</dd>
+		<dt>name<span class="property-type">string</span></dt>
+		<dd>Optional name.</dd>
+		<dt>user<span class="property-type">string</span></dt>
+		<dd>User account for the camera</dd>
+		<dt>password<span class="property-type">string</span></dt>
+		<dd>User account password for the camera</dd>
+	</dl>	
+	
 </script>
