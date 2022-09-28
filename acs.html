@@ -1,178 +1,452 @@
-<script type="text/x-red" data-template-name="Camera Station">
-    <div class="form-row">
-        <label for="node-input-server"><i class="icon-tag"></i> Server</label>
-        <input type="text" id="node-input-server">
-    </div>
-    <div class="form-row">
-        <label for="node-input-action"><i class="icon-tag"></i> Action</label>
-        <select id="node-input-action">
-            <option value="Info">Info</option>
-            <option value="Inventory">Inventory</option>
-            <option value="List recordings">List recordings</option>
-            <option value="Start recording">Start recording</option>
-            <option value="Stop recording">Stop recording</option>
-            <option value="Bookmark">Bookmark</option>
-            <option value="Export MP4">Export MP4</option>
-            <option value="Trigger">Trigger</option>
-            <option value="Add camera">Add camera</option>
-		</select>
-	</div>
-    <div class="form-row">
-        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="Name">
-    </div>
-</script>
+const got = require("got");
 
-<script type="text/javascript">
-    RED.nodes.registerType('Camera Station',{
-        category: 'Axis',
-        color: '#FFCC33',
-        defaults: {
-            name: {value:""},
-			server: {value:"", type:"ACS Server"},
-			action: { value:"" }
-        },
-        inputs:1,
-        outputs:1,
-        icon: "font-awesome/fa-table",
-        label: function() {
-            return this.name || this.action || "Camera Station";
-        },
-		oneditprepare: function() {
-			$("#node-input-action").change(function() {
-				var action = $("#node-input-action").val();
-				switch (action) {
-					case "Info":
-					break;
-					case "Inventory":
-					break;
-					case "List recordings":
-					break;
-					case "Trigger":
-					break;
-					case "Export MP4":
-					break;
-				}
+function ACS_GET( url, user, password, success, failure ) {
+	(async () => {
+		try {
+			const response = await got( url,{
+				username: user,
+				password: password,
+				responseType: "json",
+				https:{rejectUnauthorized: false}
+			});
+			success( response.body );
+		} catch (error) {
+			failure({
+				statusCode: error && error.response ? error.response.statusCode:0,
+				statusMessage: error && error.response ? error.response.statusMessage:"Unkown error",
+				body: error && error.response ? error.response.body.Message:"No additional information"
 			});
 		}
-    });
-</script>
+	})();
+}	
 
-<script type="text/x-red" data-help-name="Camera Station">
-	<h2>Inputs & Outputs</h2>
-	Set the ACS server info.  Each action will only do output on success.  Use a Catch node to get all errors.
+function ACS_POST( url, user, password, json, success, failure ) {
+	(async () => {
+		try {
+			const response = await got.post( url,{
+				json: json,
+				username: user,
+				password: password,
+				responseType: "json",
+				https:{rejectUnauthorized: false}
+			});
+			success( response.body );
+		} catch (error) {
+			failure({
+				statusCode: error && error.response ? error.response.statusCode:0,
+				statusMessage: error && error.response ? error.response.statusMessage:"Unkown error",
+				body: error && error.response ? error.response.body.Message:"No additional information"
+			});
+		}
+	})();
+}	
+
+
+
+module.exports = function(RED) {
+    function ACS_Action(config) {
+        RED.nodes.createNode(this,config);
+		this.action = config.action;
+		this.server = config.server;
+        var node = this;
+        node.on('input', function(msg) {
+			var server = RED.nodes.getNode(node.server);
+			var port = msg.port || server.port;
+			var host = msg.address || server.address;
+			var address = "https://" + host + ":" + port;
+			var user = msg.user || server.credentials.user;
+			var password = msg.password || server.credentials.password;
+			var action = msg.action || node.action;
+			switch( action ) {
+				case "Info": {
+					ACS_GET( address + '/Acs/Api/SystemFacade/GetSystem', user, password,
+						function(response){
+							msg.payload = {
+								name: response.Name || "Undefined",
+								version: response.ServerDisplayVersion || "Undefined",
+								timezone: response.TimeZone|| "Undefined",
+								hardware: response.Hardware.ModelName|| "Undefined",
+								vendor: response.Hardware.Vendor || "Undefined"
+							}
+							node.send(msg);
+						},
+						function( error ) {
+							msg.payload = error;
+							node.error( error.statusMessage,msg);
+						}
+					);
+				}
+				break;
+				
+				case "Inventory": {
+					ACS_GET( address + '/Acs/Api/ServerConfigurationFacade/GetServerConfiguration', user, password,
+						function(response){
+							list = [];
+							response.CameraSettings.forEach(function(item){
+								if( item.IsEnabled ) {
+									var device = {
+										id: item.CameraId.Id,
+										name: item.CameraName,
+										address: item.Address,
+										port: item.HttpPort,
+										model: item.Model,
+										firmware: item.FirmwareVersion,
+										serial: item.MacAddress,
+										disconnects: item.DisconnectSinceServerStart
+									};
+									list.push(device);
+								}
+							});
+							msg.payload = list;
+							node.send(msg);
+						},
+						function( error ) {
+							msg.payload = error;
+							node.error( error.statusMessage,msg );
+						}
+					);
+				}
+				break;
+
+			
+				case "List recordings": {
+					if( !msg.payload.hasOwnProperty("camera") || typeof msg.payload.camera !== "string" || msg.payload.camera.length < 15 ) {
+						msg.payload = {
+							statusCode: 400,
+							statusMessage: "Invalid input",
+							body: "Missing or invalid property camera"
+						}
+						node.error( "Invalid input", msg);
+						return;
+					}
+					if( !msg.payload.hasOwnProperty("from") ) {
+						msg.payload = {
+							statusCode: 400,
+							statusMessage: "Invalid input",
+							body: "Missing property from"
+						};							
+						node.error( "Missing property from", msg);
+						return;
+					}
+					var from = new Date(msg.payload.from);
+					var to = new Date();
+					if( msg.payload.hasOwnProperty("to") )
+						to = new Date(msg.payload.to);
+					
+					var request  = {
+						 "cameraIds": [{Id:msg.payload.camera}],
+						"interval": {
+							"StartTime": from.toISOString(),
+							"StopTime": to.toISOString()
+						},
+						"range": {
+							"StartIndex": 0,
+							"NumberOfElements": 1000
+						}
+					}
+
+					ACS_GET( address + '/Acs/Api/RecordingFacade/GetRecordedMedia?' + encodeURI(JSON.stringify(request)), user, password,
+						function(response){
+							var list = [];
+							response.RecordedMedia.forEach(function(item){
+								var recording = {
+									id: item.RecordingId,
+									track: item.QualityLevel,
+									time: 0,
+									duration: 0,
+								}
+								var t1 = from;
+								if( item.hasOwnProperty("StartTime") ) {
+									item.StartTime[10] = 'T';
+									item.StartTime += 'Z';
+									t1 = new Date(item.StartTime);
+								}
+								var t2 = new Date();	
+								if( item.hasOwnProperty("EndTime") ) {
+									item.EndTime[10] = 'T';
+									item.EndTime += 'Z';
+									t2 = new Date(item.EndTime);
+								}
+								recording.time = t1;
+								recording.duration = parseInt( ( t2.getTime() - t1.getTime() ) / 1000 );
+								list.push(recording);
+							});
+							msg.payload = list;
+							node.send(msg);
+						},
+						function( error ) {
+							msg.payload = error;
+							node.error( error.statusMessage,msg );
+						}
+					);
+				}
+				break;
+
+				case "Start recording": {
+					var input = msg.payload;
+					if( typeof msg.payload !== "string" || msg.payload.length < 15 ) {
+						msg.payload = {
+							statusCode: 400,
+							statusMessage: "Invalid input",
+							body: "msg.payload must be a camera ID string"
+						}
+						node.error( "Invalid input", msg);
+						return;
+					}
+					var url = address + '/Acs/Api/RecordingControlFacade/StartRecording';
+					ACS_POST( url, user, password,
+						{cameraID:{Id:msg.payload}},
+						function(response){
+							msg.payload = input;
+							node.send(msg);
+						},
+						function( error ) {
+							msg.payload = error;
+							node.error( error.statusMessage,msg );
+						}
+					);
+				}
+				break;
+
+				case "Stop recording": {
+					var input = msg.payload;
+					if( typeof msg.payload !== "string" || msg.payload.length < 15 ) {
+						msg.payload = {
+							statusCode: 400,
+							statusMessage: "Invalid input",
+							body: "msg.payload must be a camera ID string"
+						}
+						node.error( "Invalid input", msg);
+						return;
+					}
+					var url = address + '/Acs/Api/RecordingControlFacade/StopRecording';
+					ACS_POST( url, user, password,
+						{cameraID:{Id:msg.payload}},
+						function(response){
+							msg.payload = input;
+							node.send(msg);
+						},
+						function( error ) {
+							msg.payload = error;
+							node.error( error.statusMessage,msg );
+						}
+					);
+				}
+				break;
+
+				case "Bookmark": {
+					if( !msg.payload.hasOwnProperty("camera") || typeof msg.payload.camera !== "string" || msg.payload.camera.length < 15 ) {
+						msg.payload = {
+							statusCode: 400,
+							statusMessage: "Invalid input",
+							body: "Missing or invalid property camera"
+						}
+						node.error( "Invalid input", msg);
+						return;
+					}
+
+					if( !msg.payload.hasOwnProperty("name") || typeof msg.payload.camera !== "string" ) {
+						msg.payload = {
+							statusCode: 400,
+							statusMessage: "Invalid input",
+							body: "Missing or invalid property name"
+						}
+						node.error( "Invalid input", msg);
+						return;
+					}
+				
+
+					var url = address + '/Acs/ApiBookmarkFacade/AddBookmark';
+					var request = {
+						CameraId: {
+							Id: msg.payload.camera
+						},
+						Name: msg.payload.name,
+						Description: msg.payload.text
+					}
+
+					if( msg.payload.hasOwnProperty("time") ) {
+						var time = new Date(time);
+						request.time = time.getUTCFullYear()+"-"+('0'+(time.getUTCMonth()+1)).substr(-2,2)+"-"+('0'+time.getUTCDate()).substr(-2,2) + " ";
+						request.time += ('0'+from.getUTCHours()).substr(-2,2) + ":" + ('0'+from.getUTCMinutes()).substr(-2,2) + ":" + ('0'+from.getUTCSeconds()).substr(-2,2);
+					}
+					if( msg.payload.hasOwnProperty("text") )
+						request.Desription = msg.payload.text;
+					ACS_POST( url, user, password,
+						request,
+						function(response){
+							msg.payload = "Bookmark added";
+							node.send(msg);
+						},
+						function( error ) {
+							msg.payload = error;
+							node.error( error.statusMessage,msg );
+						}
+					);
+				}
+				break;
+				
+				case "Export MP4": {
+					if( !msg.payload.hasOwnProperty("camera") || typeof msg.payload.camera !== "string" || msg.payload.camera.length < 15 ) {
+						msg.payload = {
+							statusCode: 400,
+							statusMessage: "Invalid input",
+							body: "Missing or invalid property camera"
+						}
+						node.error( "Invalid input", msg);
+						return;
+					}
+					if( !msg.payload.hasOwnProperty("from") ) {
+						msg.error = "Invalid from";
+						msg.payload = {
+							statusCode: 400,
+							statusMessage: "Invalid input",
+							body: "Missing proprty from"
+						}						
+						node.error( "Invalid input", msg );
+						return;
+					}
+					
+					var from = new Date( new Date(msg.payload.from).getTime() + 1000 );  //Make sure the timestamp is withing recording period
+					var to = new Date( from.getTime() + 15000 );
+					if( msg.payload.hasOwnProperty("to") )
+						to = new Date(msg.payload.to);
+					var startTime = from.getUTCFullYear()+"-"+('0'+(from.getUTCMonth()+1)).substr(-2,2)+"-"+('0'+from.getUTCDate()).substr(-2,2) + "-";
+					startTime += ('0'+from.getUTCHours()).substr(-2,2) + ('0'+from.getUTCMinutes()).substr(-2,2) + ('0'+from.getUTCSeconds()).substr(-2,2)+"-0000000Z";
+					endTime = to.getUTCFullYear()+"-"+('0'+(to.getUTCMonth()+1)).substr(-2,2)+"-"+('0'+to.getUTCDate()).substr(-2,2) + "-";
+					endTime += ('0'+to.getUTCHours()).substr(-2,2) + ('0'+to.getUTCMinutes()).substr(-2,2) + ('0'+to.getUTCSeconds()).substr(-2,2)+"-0000000Z";
+
+					var request = "camera=" + msg.payload.camera;
+					request += "&start=" + startTime;
+					request += "&end=" + endTime;
+					request += "&quality=highestavailable";
+					request += msg.payload.audio?"&audio=1":"&audio=0";
+					var url = address + '/Acs/Streaming/Video/Playback/MP4/?' + request;
+					(async () => {
+						try {
+							const response = await got( url,{username: user,password:password,responseType: "buffer",https:{rejectUnauthorized: false}});
+							msg.payload = response.body;
+							node.send(msg);
+						} catch (error) {
+							msg.payload = error;
+							node.error( error.statusMessage,msg );
+						}
+					})();
+				}
+				break;
+
+				case "Trigger": {
+					if( !msg.payload.hasOwnProperty("name") ) {
+						msg.payload = {
+							statusCode: 400,
+							statusMessage: "Invalid input",
+							body: "Missing name"
+						};
+						node.error( "Invalid input", msg);
+						return;
+					}
+					var duration = msg.payload.duration || 0;
+					var state = msg.payload.state || true;
+					
+					var url = address + "/Acs/Api/TriggerFacade/ActivateTrigger?";
+					var request = {
+						triggerName: msg.payload.id
+					}
+					if( duration > 0 ) {
+						url = address + '/Acs/Api/TriggerFacade/ActivateDeactivateTrigger?';
+						request.deactivateAfterSeconds = duration.toString();
+					}
+					if( !state )
+						url = address + "/Acs/Api/TriggerFacade/DeactivateTrigger?" + encodeURI(JSON.stringify({triggerName: msg.payload.camera}));
+					
+					url += encodeURI(JSON.stringify(request));
+
+					ACS_GET( url, user, password,
+						function(response){
+							msg.payload = "Trigger state: " + state;
+							node.send(msg);
+						},
+						function( error ) {
+							msg.payload = error;
+							node.error( error.statusMessage,msg );
+						}
+					);
+				}	
+				break;
+				
+				case "Add camera":
+					if( !msg.payload.hasOwnProperty("address") || typeof msg.payload.address !== "string") {
+						msg.payload = {
+							statusCode: 400,
+							statusMessage: "Invalid input",
+							body: "Missing or invalid property address"
+						}
+						node.error( "Invalid input", msg);
+						return;
+					}
+					if( !msg.payload.hasOwnProperty("user") || typeof msg.payload.user !== "string") {
+						msg.payload = {
+							statusCode: 400,
+							statusMessage: "Invalid input",
+							body: "Missing or invalid property address"
+						}
+						node.error( "Invalid input", msg);
+						return;
+					}
+					if( !msg.payload.hasOwnProperty("password") || typeof msg.payload.user !== "string") {
+						msg.payload = {
+							statusCode: 400,
+							statusMessage: "Invalid input",
+							body: "Missing or invalid property password"
+						}
+						node.error( "Invalid input", msg);
+						return;
+					}
+					
+					var postBody = {
+						"ConnectionInfo": {
+							"Address": msg.payload.address,
+							"Port": msg.payload.port || "443"
+						},
+						"AuthenticationInfo": {
+							"Username": msg.payload.user,
+							"Password": msg.payload.password,
+							"SecurityMode": "HttpsDigest"
+						},
+						"Options": {
+							"Name": msg.payload.name || msg.payload.address,
+							"Description": msg.payload.description || "",
+							"RetentionTime": msg.payload.retention || 0,
+							"ViewToken": "0"
+						}
+					};
+		
+					ACS_POST( address + '/Acs/Api/CameraFacade/AddCamera', user, password,
+						postBody,
+						function(response){
+							msg.payload = response.body;
+							node.send(msg);
+						},
+						function( error ) {
+							msg.payload = error;
+							node.error( error.statusMessage,msg );
+						}
+					);
+				
+					break;
+				
+				default:
+					node.error("Invalid action: " + action,msg);
+				break;
+			}
+        });
+    }
 	
-	<h2><b>Info</b></h2>
-	<p>Outputs basic server info.</p>
-	
-	<h2><b>Inventory</b></h2>
-	<p>Outputs ACS devices inventory</p>
-	
-	<h2><b>List recordings</b></h2>
-	<p>Outputs a list of recordings from a specific camera</p>
-	msg.payload
-	{<br/>
-	&nbsp;&nbsp;camera: "11112_b72b3225-daf0-410e-bc39-ae2f6ff39b8d",<br/>
-	&nbsp;&nbsp;from: "2022-07-10" <br/>
-	}<br/>
-	<dl class="message-properties">
-		<dt>camera<span class="property-type">string</span></dt>
-		<dd>Camera Id from inventory list</dd>
-		<dt>from<span class="property-type">number, Date, string</span></dt>
-		<dd>Start time as EPOCH, Date object or string "2022-07-03"</dd>
-		<dt>to<span class="property-type">number, Date, string</span></dt>
-		<dd>Optional.  If not set the list will include until now</dd>
-	</dl>	
-
-	<h2><b>Start recording</b></h2>
-	<p>Get ACS to start a manual recording on a specific camera</p>
-	<dl class="message-properties">
-		<dt>msg.payload<span class="property-type">string</span></dt>
-		<dd>Camera Id from inventory list</dd>
-	</dl>	
-
-	<h2><b>Stop recording</b></h2>
-	<p>Stop a manual recording</p>
-	<dl class="message-properties">
-		<dt>msg.payload<span class="property-type">string</span></dt>
-		<dd>Camera Id from inventory list</dd>
-	</dl>	
-
-	<h2><b>Bookmark</b></h2>
-	<p>Adds a bookmark on a recording for operators to find and keep track of incidents</p>
-	msg.payload
-	{<br/>
-	&nbsp;&nbsp;camera: "11112_b72b3225-daf0-410e-bc39-ae2f6ff39b8d",[<br/>
-	&nbsp;&nbsp;name: "Suspicious", <br/>
-	&nbsp;&nbsp;text: "Something to look closer on", <br/>
-	&nbsp;&nbsp;time: new Date() <br/>
-	}<br/>
-	<dl class="message-properties">
-		<dt>camera<span class="property-type">string</span></dt>
-		<dd>Camera Id from inventory list</dd>
-		<dt>name<span class="property-type">string</span></dt>
-		<dd>A short descriptiv header</dd>
-		<dt>text<span class="property-type">string</span></dt>
-		<dd>Optional additional information</dd>
-		<dt>time<span class="property-type">number, Date, string</span></dt>
-		<dd>Timestamp. If omitted, current time will be used</dd>
-	</dl>	
-
-	<h2><b>Export MP4</b></h2>
-	<p>Exports a recording in MP4 format</p>
-	msg.payload
-	{<br/>
-	&nbsp;&nbsp;camera: "11112_b72b3225-daf0-410e-bc39-ae2f6ff39b8d",[<br/>
-	&nbsp;&nbsp;from: 1664348162000, <br/>
-	&nbsp;&nbsp;to:   1664348173000, <br/>
-	&nbsp;&nbsp;audio: false <br/>	
-	}<br/>
-	<dl class="message-properties">
-		<dt>camera<span class="property-type">string</span></dt>
-		<dd>Camera Id from inventory list</dd>
-		<dt>from<span class="property-type">number, object, string</span></dt>
-		<dd>Start time</dd>
-		<dt>to<span class="property-type">number, object, string</span></dt>
-		<dd>End time</dd>
-		<dt>audio<span class="property-type">number, object, string</span></dt>
-		<dd>Include/Exclude audio</dd>
-	</dl>	
-
-	<h2><b>Trigger</b></h2>
-	<p>Initiates a trigger configured in ACS.</p>
-	msg.payload
-	{<br/>
-	&nbsp;&nbsp;name: "My trigger",[<br/>
-	&nbsp;&nbsp;duration: 10, <br/>
-	&nbsp;&nbsp;state: true <br/>
-	}<br/>
-	<dl class="message-properties">
-		<dt>name<span class="property-type">string</span></dt>
-		<dd>The name of the triggered defined in ACS</dd>
-		<dt>duration<span class="property-type">number</span></dt>
-		<dd>Optional number of seconds the state will be high.  If omitted, a new trigger with state false should be sent</dd>
-		<dt>state<span class="property-type">bool</span></dt>
-		<dd>Optional.  Only required for stopping a trigger </dd>
-	</dl>	
-
-	<h2><b>Add camera</b></h2>
-	<p>Adds a camera to inventory</p>
-	msg.payload
-	{<br/>
-	&nbsp;&nbsp;address: "1.2.3.4",<br/>
-	&nbsp;&nbsp;name: "Some camera", <br/>
-	&nbsp;&nbsp;user: "root", <br/>
-	&nbsp;&nbsp;password: "pass", <br/>
-	}<br/>
-	<dl class="message-properties">
-		<dt>address<span class="property-type">string</span></dt>
-		<dd>IP address (or FQDN) to the camera</dd>
-		<dt>name<span class="property-type">string</span></dt>
-		<dd>Optional name.</dd>
-		<dt>user<span class="property-type">string</span></dt>
-		<dd>User account for the camera</dd>
-		<dt>password<span class="property-type">string</span></dt>
-		<dd>User account password for the camera</dd>
-	</dl>	
-	
-</script>
+    RED.nodes.registerType("Camera Station",ACS_Action,{
+		defaults: {
+            name: {type:"text"},
+			server: {type:"ACS Server"},
+			action: { type:"text" }
+		}		
+	});
+}
