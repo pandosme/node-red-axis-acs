@@ -1,6 +1,7 @@
 const got = require("got");
 
 function ACS_GET( url, user, password, success, failure ) {
+console.log( url );	
 	(async () => {
 		try {
 			const response = await got( url,{
@@ -11,6 +12,31 @@ function ACS_GET( url, user, password, success, failure ) {
 			});
 			success( response.body );
 		} catch (error) {
+			if( error.code === 'ECONNREFUSED' ) {
+				failure({
+					statusCode: error.code,
+					statusMessage: "Connection refused",
+					body: "Port is not active or blocked by firewall"
+				});
+				return;
+			}
+			if( error.code === 'EHOSTUNREACH' ) {
+				failure({
+					statusCode: error.code,
+					statusMessage: "Unreachable",
+					body: "Host does not respond"
+				});
+				return;
+			}
+			if( error.code === 'ETIMEDOUT' ) {
+				failure({
+					statusCode: error.code,
+					statusMessage: "Timeout",
+					body: "Host does not respond"
+				});
+				return;
+			}
+console.log( "Request error:" + url + " " + error.code );
 			failure({
 				statusCode: error && error.response ? error.response.statusCode:0,
 				statusMessage: error && error.response ? error.response.statusMessage:"Unkown error",
@@ -32,6 +58,31 @@ function ACS_POST( url, user, password, json, success, failure ) {
 			});
 			success( response.body );
 		} catch (error) {
+			if( error.code === 'ECONNREFUSED' ) {
+				failure({
+					statusCode: error.code,
+					statusMessage: "Connection refused",
+					body: "Port is not active or blocked by firewall"
+				});
+				return;
+			}
+			if( error.code === 'EHOSTUNREACH' ) {
+				failure({
+					statusCode: error.code,
+					statusMessage: "Unreachable",
+					body: "Host does not respond"
+				});
+				return;
+			}
+			if( error.code === 'ETIMEDOUT' ) {
+				failure({
+					statusCode: error.code,
+					statusMessage: "Timeout",
+					body: "Host does not respond"
+				});
+				return;
+			}
+console.log( "Request error:" + url + " " + error.code );
 			failure({
 				statusCode: error && error.response ? error.response.statusCode:0,
 				statusMessage: error && error.response ? error.response.statusMessage:"Unkown error",
@@ -40,7 +91,6 @@ function ACS_POST( url, user, password, json, success, failure ) {
 		}
 	})();
 }	
-
 
 
 module.exports = function(RED) {
