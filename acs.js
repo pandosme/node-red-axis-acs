@@ -38,7 +38,7 @@ console.log( url );
 			}
 console.log( "Request error:" + url + " " + error.code );
 			failure({
-				statusCode: error && error.response ? error.response.statusCode:0,
+				statusCode: error && error.response ? error.response.statusCode:error.code,
 				statusMessage: error && error.response ? error.response.statusMessage:"Unkown error",
 				body: error && error.response ? error.response.body.Message:"No additional information"
 			});
