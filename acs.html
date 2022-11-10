@@ -70,8 +70,7 @@
 	
 	<h2><b>List recordings</b></h2>
 	<p>Outputs a list of recordings from a specific camera</p>
-	msg.payload = 
-	{<br/>
+	msg.payload = {<br/>
 	&nbsp;&nbsp;camera: "11112_b72b3225-daf0-410e-bc39-ae2f6ff39b8d",<br/>
 	&nbsp;&nbsp;from: "2022-07-10" <br/>
 	}<br/>
@@ -102,10 +101,10 @@
 	<p>Adds a bookmark on a recording for operators to find and keep track of incidents</p>
 	msg.payload = 
 	{<br/>
-	&nbsp;&nbsp;camera: "11112_b72b3225-daf0-410e-bc39-ae2f6ff39b8d",[<br/>
+	&nbsp;&nbsp;camera: "11112_b72b3225-daf0-410e-bc39-ae2f6ff39b8d",<br/>
 	&nbsp;&nbsp;name: "Suspicious", <br/>
 	&nbsp;&nbsp;text: "Something to look closer on", <br/>
-	&nbsp;&nbsp;time: new Date() <br/>
+	&nbsp;&nbsp;//time: new Date() <br/>
 	}<br/>
 	<dl class="message-properties">
 		<dt>camera<span class="property-type">string</span></dt>
@@ -122,7 +121,7 @@
 	<p>Exports a recording in MP4 format</p>
 	msg.payload = 
 	{<br/>
-	&nbsp;&nbsp;camera: "11112_b72b3225-daf0-410e-bc39-ae2f6ff39b8d",[<br/>
+	&nbsp;&nbsp;camera: "11112_b72b3225-daf0-410e-bc39-ae2f6ff39b8d",<br/>
 	&nbsp;&nbsp;from: 1664348162000, <br/>
 	&nbsp;&nbsp;to:   1664348173000, <br/>
 	&nbsp;&nbsp;audio: false <br/>	
@@ -139,7 +138,7 @@
 	</dl>	
 
 	<h2><b>Trigger</b></h2>
-	<p>Initiates a trigger configured in ACS.</p>
+	<p>Initiates a trigger configured in ACS.  </p>
 	msg.payload = 
 	{<br/>
 	&nbsp;&nbsp;name: "My trigger",[<br/>
@@ -163,7 +162,6 @@
 	&nbsp;&nbsp;name: "Some camera", <br/>
 	&nbsp;&nbsp;user: "root", <br/>
 	&nbsp;&nbsp;password: "pass", <br/>
-	&nbsp;&nbsp;port: "80" <br/>
 	}<br/>
 	<dl class="message-properties">
 		<dt>address<span class="property-type">string</span></dt>
@@ -174,8 +172,6 @@
 		<dd>User account for the camera</dd>
 		<dt>password<span class="property-type">string</span></dt>
 		<dd>User account password for the camera</dd>
-		<dt>port<span class="property-type">string</span></dt>
-		<dd>Optional Camera port (default 80)</dd>
 	</dl>	
 	
 </script>
