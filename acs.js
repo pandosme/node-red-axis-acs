@@ -36,7 +36,6 @@ console.log( url );
 				});
 				return;
 			}
-//console.log( "Request error:" + url + " " + error.code );
 			failure({
 				statusCode: error && error.response ? error.response.statusCode:error.code,
 				statusMessage: error && error.response ? error.response.statusMessage:"Unkown error",
@@ -82,7 +81,6 @@ function ACS_POST( url, user, password, json, success, failure ) {
 				});
 				return;
 			}
-//console.log( "Request error:" + url + " " + error.code );
 			failure({
 				statusCode: error && error.response ? error.response.statusCode:0,
 				statusMessage: error && error.response ? error.response.statusMessage:"Unkown error",
@@ -159,7 +157,6 @@ module.exports = function(RED) {
 				}
 				break;
 
-			
 				case "List recordings": {
 					if( !msg.payload.hasOwnProperty("camera") || typeof msg.payload.camera !== "string" || msg.payload.camera.length < 15 ) {
 						msg.payload = {
@@ -293,31 +290,34 @@ module.exports = function(RED) {
 						node.error( "Invalid input", msg);
 						return;
 					}
-					if( !msg.payload.hasOwnProperty("type") || typeof msg.payload.camera !== "string" ) {
+					if( !msg.payload.hasOwnProperty("name") || typeof msg.payload.camera !== "string" ) {
 						msg.payload = {
 							statusCode: 400,
 							statusMessage: "Invalid input",
-							body: "Missing or invalid property type"
+							body: "Missing or invalid property name"
 						}
 						node.error( "Invalid input", msg);
 						return;
 					}
 
-					var url = address + '/Acs/ApiBookmarkFacade/AddBookmark';
+					var url = address + '/Acs/Api/BookmarkFacade/AddBookmark';
 					var request = {
 						CameraId: {
 							Id: msg.payload.camera
 						},
-						Name: msg.payload.type
+						Name: msg.payload.name
 					}
 
+
 					if( msg.payload.hasOwnProperty("time") ) {
-						var time = new Date(time);
-						request.time = time.getUTCFullYear()+"-"+('0'+(time.getUTCMonth()+1)).substr(-2,2)+"-"+('0'+time.getUTCDate()).substr(-2,2) + " ";
-						request.time += ('0'+from.getUTCHours()).substr(-2,2) + ":" + ('0'+from.getUTCMinutes()).substr(-2,2) + ":" + ('0'+from.getUTCSeconds()).substr(-2,2);
+						var time = new Date(msg.payload.time);
+						request.Time = time.getUTCFullYear()+"-"+('0'+(time.getUTCMonth()+1)).substr(-2,2)+"-"+('0'+time.getUTCDate()).substr(-2,2) + " ";
+						request.Time += ('0'+time.getUTCHours()).substr(-2,2) + ":" + ('0'+time.getUTCMinutes()).substr(-2,2) + ":" + ('0'+time.getUTCSeconds()).substr(-2,2);
 					}
+					
 					if( msg.payload.hasOwnProperty("text") )
-						request.Desription = msg.payload.text;
+						request.Description = msg.payload.text;
+
 					ACS_POST( url, user, password,
 						request,
 						function(response){
@@ -382,11 +382,11 @@ module.exports = function(RED) {
 				break;
 
 				case "Trigger": {
-					if( msg.payload !== "string" ) {
+					if( !msg.payload.hasOwnProperty("name") ) {
 						msg.payload = {
 							statusCode: 400,
 							statusMessage: "Invalid input",
-							body: "payload must be a string (Trigger ID)"
+							body: "Missing property name"
 						};
 						node.error( "Invalid input", msg);
 						return;
@@ -396,14 +396,17 @@ module.exports = function(RED) {
 					
 					var url = address + "/Acs/Api/TriggerFacade/ActivateTrigger?";
 					var request = {
-						triggerName: msg.payload.id
+						triggerName: msg.payload.name
 					}
+					
 					if( duration > 0 ) {
 						url = address + '/Acs/Api/TriggerFacade/ActivateDeactivateTrigger?';
 						request.deactivateAfterSeconds = duration.toString();
+					} else {
+						if( !state ) {
+							url = address + "/Acs/Api/TriggerFacade/DeactivateTrigger?";
+						}
 					}
-					if( !state )
-						url = address + "/Acs/Api/TriggerFacade/DeactivateTrigger?" + encodeURI(JSON.stringify({triggerName: msg.payload.camera}));
 					
 					url += encodeURI(JSON.stringify(request));
 
