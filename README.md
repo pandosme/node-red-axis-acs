@@ -12,6 +12,9 @@ Simplfies integration with Axis Camera Station (ACS)
 - Add devices to server
 
 ## History
-### 2.1.0
+### 2.1.1
 - Adjust "Add camera" to enhance chaining flows when adding mutiple cameras
+- Fixed flaw in action Bookmark
+- Fixed flaw in action Trigger
+- Added example
 
