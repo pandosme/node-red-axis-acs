@@ -36,7 +36,7 @@ console.log( url );
 				});
 				return;
 			}
-console.log( "Request error:" + url + " " + error.code );
+//console.log( "Request error:" + url + " " + error.code );
 			failure({
 				statusCode: error && error.response ? error.response.statusCode:error.code,
 				statusMessage: error && error.response ? error.response.statusMessage:"Unkown error",
@@ -82,7 +82,7 @@ function ACS_POST( url, user, password, json, success, failure ) {
 				});
 				return;
 			}
-console.log( "Request error:" + url + " " + error.code );
+//console.log( "Request error:" + url + " " + error.code );
 			failure({
 				statusCode: error && error.response ? error.response.statusCode:0,
 				statusMessage: error && error.response ? error.response.statusMessage:"Unkown error",
@@ -122,6 +122,7 @@ module.exports = function(RED) {
 						},
 						function( error ) {
 							msg.payload = error;
+							msg.payload.input = input;
 							node.error( error.statusMessage,msg);
 						}
 					);
@@ -420,6 +421,7 @@ module.exports = function(RED) {
 				break;
 				
 				case "Add camera":
+					var input = msg.payload;
 					if( !msg.payload.hasOwnProperty("address") || typeof msg.payload.address !== "string") {
 						msg.payload = {
 							statusCode: 400,
@@ -433,7 +435,8 @@ module.exports = function(RED) {
 						msg.payload = {
 							statusCode: 400,
 							statusMessage: "Invalid input",
-							body: "Missing or invalid property address"
+							body: "Missing or invalid property address",
+							address: input.address
 						}
 						node.error( "Invalid input", msg);
 						return;
@@ -442,7 +445,8 @@ module.exports = function(RED) {
 						msg.payload = {
 							statusCode: 400,
 							statusMessage: "Invalid input",
-							body: "Missing or invalid property password"
+							body: "Missing or invalid property password",
+							address: input.address
 						}
 						node.error( "Invalid input", msg);
 						return;
@@ -451,33 +455,33 @@ module.exports = function(RED) {
 					var postBody = {
 						"ConnectionInfo": {
 							"Address": msg.payload.address,
-							"Port": msg.payload.port || "443"
+							"Port": msg.payload.port || "80"
 						},
 						"AuthenticationInfo": {
 							"Username": msg.payload.user,
 							"Password": msg.payload.password,
-							"SecurityMode": "HttpsDigest"
+							"SecurityMode": "HttpDigest"  //Valid values are: HttpBasic, HttpsBasic, HttpDigest, HttpsDigest.
 						},
 						"Options": {
-							"Name": msg.payload.name || msg.payload.address,
-							"Description": msg.payload.description || "",
-							"RetentionTime": msg.payload.retention || 0,
-							"ViewToken": "0"
+							"Name": msg.payload.name || msg.payload.address
+//							"Description": msg.payload.description || "",
+//							"RetentionTime": msg.payload.retention || 0
+//							"ViewToken": "0"
 						}
 					};
 		
 					ACS_POST( address + '/Acs/Api/CameraFacade/AddCamera', user, password,
 						postBody,
 						function(response){
-							msg.payload = response.body;
+							msg.payload = input;
 							node.send(msg);
 						},
 						function( error ) {
 							msg.payload = error;
+							msg.payload.address = input.address;
 							node.error( error.statusMessage,msg );
 						}
 					);
-				
 					break;
 				
 				default:
