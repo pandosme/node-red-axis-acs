@@ -472,14 +472,17 @@ module.exports = function(RED) {
 //							"ViewToken": "0"
 						}
 					};
+					node.status({fill:"blue",shape:"dot",text:"Adding"});
 		
 					ACS_POST( address + '/Acs/Api/CameraFacade/AddCamera', user, password,
 						postBody,
 						function(response){
+							node.status({fill:"green",shape:"dot",text:"OK"});
 							msg.payload = input;
 							node.send(msg);
 						},
 						function( error ) {
+							node.status({fill:"red",shape:"dot",text:"Error"});
 							msg.payload = error;
 							msg.payload.address = input.address;
 							node.error( error.statusMessage,msg );
